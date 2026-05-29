@@ -740,8 +740,34 @@ class CompetitionGUI:
 
         if self.runner.game_over:
             self.end_game()
+        elif self.runner.my_color == WHITE:
+            # 我方执白，黑5落后轮到我方下白6
+            self.current_phase = PHASE_MY_TURN
+            self.update_phase()
+            self.current_turn = WHITE
+            self.update_turn()
+
+            success, move = self.runner.make_my_move()
+            if success:
+                self.output_append(f"我方输出: {move}")
+                self._log(f"我方落子: {move}")
+            else:
+                self.output_append(f"我方落子失败: {move}")
+
+            self.draw_board()
+            self.update_forbidden_status()
+
+            if self.runner.game_over:
+                self.end_game()
+            else:
+                self.current_phase = PHASE_WAIT_OPPONENT_4
+                self.update_phase()
+                self.output_append("请输入对方黑7落子...")
+                self.opp_input_entry.delete(0, tk.END)
+                self.current_turn = BLACK
+                self.update_turn()
         else:
-            # 进入正常对弈
+            # 我方执黑（对方执白），等待对方白6
             self.current_phase = PHASE_WAIT_OPPONENT_4
             self.update_phase()
             self.output_append("五手N打完成，请输入对方下一步落子...")
