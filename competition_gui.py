@@ -55,9 +55,16 @@ PHASE_NORMAL = "正常对弈"
 class CompetitionGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("弈衡五子棋 - 比赛界面 v2.3")
-        self.root.geometry("1150x900")
-        self.root.resizable(False, False)
+        self.root.title("弈衡五子棋 - 比赛界面 v2.4")
+        self.root.geometry("1280x760")
+        self.root.minsize(1150, 720)
+        self.root.resizable(True, True)
+
+        # 尝试最大化窗口
+        try:
+            self.root.state("zoomed")
+        except Exception:
+            pass
 
         self.runner: Optional[CompetitionRunner] = None
         self.game_started = False
@@ -80,7 +87,8 @@ class CompetitionGUI:
         # 我方初始颜色（用于区分交换来源）
         self.initial_my_color = BLACK
 
-        self.board_size = 540
+        # 棋盘参数（稍微缩小以适应屏幕）
+        self.board_size = 500
         self.margin = 30
         self.grid_size = self.board_size // 15
         self.canvas_width = self.board_size + self.margin * 2
@@ -92,159 +100,191 @@ class CompetitionGUI:
         self.update_timer_display()
         self.update_phase()
 
+    def _on_mousewheel(self, event):
+        """鼠标滚轮滚动右侧区域"""
+        if hasattr(self, 'right_canvas'):
+            self.right_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def _bind_scroll(self):
+        """绑定鼠标滚轮"""
+        if hasattr(self, 'right_canvas'):
+            self.right_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+
+    def _unbind_scroll(self):
+        """解绑鼠标滚轮"""
+        if hasattr(self, 'right_canvas'):
+            self.right_canvas.unbind_all("<MouseWheel>")
+
     def setup_ui(self):
-        main_frame = ttk.Frame(self.root, padding="5")
+        main_frame = ttk.Frame(self.root, padding="3")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         left_frame = ttk.Frame(main_frame)
-        left_frame.pack(side=tk.LEFT, padx=5)
+        left_frame.pack(side=tk.LEFT, padx=3)
 
         self.canvas = tk.Canvas(left_frame, width=self.canvas_width,
                                 height=self.canvas_height, bg="#DEB887")
         self.canvas.pack()
         self.canvas.bind("<Button-1>", self.on_canvas_click)
 
-        right_frame = ttk.Frame(main_frame, width=360)
-        right_frame.pack(side=tk.LEFT, fill=tk.BOTH, padx=5)
-        right_frame.pack_propagate(False)
+        # 右侧滚动容器
+        right_container = ttk.Frame(main_frame, width=400)
+        right_container.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=3)
+        right_container.pack_propagate(False)
 
-        ttk.Label(right_frame, text="弈衡五子棋 - 比赛界面 v2.3",
-                  font=("微软雅黑", 14, "bold")).pack(pady=5)
+        # 创建Canvas和滚动条
+        self.right_canvas = tk.Canvas(right_container, width=400, highlightthickness=0)
+        self.right_scrollbar = ttk.Scrollbar(right_container, orient="vertical",
+                                            command=self.right_canvas.yview)
+        self.right_scrollable_frame = ttk.Frame(self.right_canvas)
+
+        self.right_scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.right_canvas.configure(scrollregion=self.right_canvas.bbox("all"))
+        )
+
+        self.right_canvas.create_window((0, 0), window=self.right_scrollable_frame, anchor="nw")
+        self.right_canvas.configure(yscrollcommand=self.right_scrollbar.set)
+
+        self.right_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.right_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # 绑定鼠标滚轮
+        self.right_canvas.bind("<Enter>", lambda e: self._bind_scroll())
+        self.right_canvas.bind("<Leave>", lambda e: self._unbind_scroll())
+
+        # 右侧标题
+        ttk.Label(self.right_scrollable_frame, text="弈衡五子棋 - 比赛界面 v2.4",
+                  font=("微软雅黑", 14, "bold")).pack(pady=3)
 
         # 当前阶段
-        phase_frame = ttk.LabelFrame(right_frame, text="当前阶段", padding="5")
-        phase_frame.pack(fill=tk.X, pady=5)
+        phase_frame = ttk.LabelFrame(self.right_scrollable_frame, text="当前阶段", padding="3")
+        phase_frame.pack(fill=tk.X, pady=2, padx=2)
         self.phase_label = ttk.Label(phase_frame, text=PHASE_WAIT_OPENING,
-                                     font=("Consolas", 11, "bold"), foreground="blue")
+                                     font=("Consolas", 10, "bold"), foreground="blue")
         self.phase_label.pack(anchor=tk.W)
 
         # 计时器
-        timer_frame = ttk.LabelFrame(right_frame, text="计时器", padding="5")
-        timer_frame.pack(fill=tk.X, pady=5)
+        timer_frame = ttk.LabelFrame(self.right_scrollable_frame, text="计时器", padding="3")
+        timer_frame.pack(fill=tk.X, pady=2, padx=2)
         self.my_timer_label = ttk.Label(timer_frame, text="我方剩余: 15:00",
-                                        font=("Consolas", 12, "bold"), foreground="blue")
+                                        font=("Consolas", 11, "bold"), foreground="blue")
         self.my_timer_label.pack(anchor=tk.W)
         self.opp_timer_label = ttk.Label(timer_frame, text="对方剩余: 15:00",
-                                          font=("Consolas", 12, "bold"), foreground="red")
+                                          font=("Consolas", 11, "bold"), foreground="red")
         self.opp_timer_label.pack(anchor=tk.W)
-        self.turn_label = ttk.Label(timer_frame, text="当前行棋: 黑棋", font=("Consolas", 10))
+        self.turn_label = ttk.Label(timer_frame, text="当前行棋: 黑棋", font=("Consolas", 9))
         self.turn_label.pack(anchor=tk.W)
-        self.my_color_label = ttk.Label(timer_frame, text="我方执棋: 黑棋", font=("Consolas", 10))
+        self.my_color_label = ttk.Label(timer_frame, text="我方执棋: 黑棋", font=("Consolas", 9))
         self.my_color_label.pack(anchor=tk.W)
         timer_btn_frame = ttk.Frame(timer_frame)
-        timer_btn_frame.pack(fill=tk.X, pady=5)
-        self.pause_btn = ttk.Button(timer_btn_frame, text="暂停", command=self.toggle_timer, width=8)
-        self.pause_btn.pack(side=tk.LEFT, padx=2)
-        self.reset_btn = ttk.Button(timer_btn_frame, text="重置", command=self.reset_timers, width=8)
-        self.reset_btn.pack(side=tk.LEFT, padx=2)
+        timer_btn_frame.pack(fill=tk.X, pady=2)
+        self.pause_btn = ttk.Button(timer_btn_frame, text="暂停", command=self.toggle_timer, width=6)
+        self.pause_btn.pack(side=tk.LEFT, padx=1)
+        self.reset_btn = ttk.Button(timer_btn_frame, text="重置", command=self.reset_timers, width=6)
+        self.reset_btn.pack(side=tk.LEFT, padx=1)
 
         # 指定开局（我方执黑）
-        opening_frame = ttk.LabelFrame(right_frame, text="指定开局（我方执黑）", padding="5")
-        opening_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(opening_frame, text="26种指定开局按《规则附录七》内置",
-                  font=("Consolas", 8), foreground="gray").pack(anchor=tk.W)
+        opening_frame = ttk.LabelFrame(self.right_scrollable_frame, text="指定开局（我方执黑）", padding="3")
+        opening_frame.pack(fill=tk.X, pady=2, padx=2)
+        ttk.Label(opening_frame, text="26种指定开局",
+                  font=("Consolas", 7), foreground="gray").pack(anchor=tk.W)
         name_frame = ttk.Frame(opening_frame)
-        name_frame.pack(fill=tk.X, pady=2)
+        name_frame.pack(fill=tk.X, pady=1)
         ttk.Label(name_frame, text="开局:").pack(side=tk.LEFT)
         self.opening_combo = ttk.Combobox(name_frame, values=ALL_OPENINGS,
                                            state="readonly", width=10)
         self.opening_combo.set(DEFAULT_OPENING_NAME)
-        self.opening_combo.pack(side=tk.LEFT, padx=5)
-        n_frame = ttk.Frame(opening_frame)
-        n_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(n_frame, text="N值:").pack(side=tk.LEFT)
-        self.n_combo = ttk.Combobox(n_frame, values=[2, 3, 4, 5], state="readonly", width=5)
+        self.opening_combo.pack(side=tk.LEFT, padx=3)
+        ttk.Label(name_frame, text="N:").pack(side=tk.LEFT)
+        self.n_combo = ttk.Combobox(name_frame, values=[2, 3, 4, 5], state="readonly", width=3)
         self.n_combo.set(DEFAULT_FIFTH_N)
-        self.n_combo.pack(side=tk.LEFT, padx=5)
+        self.n_combo.pack(side=tk.LEFT, padx=3)
         self.gen_btn = ttk.Button(opening_frame, text="程序生成指定开局",
                                    command=self.generate_opening)
-        self.gen_btn.pack(fill=tk.X, pady=3)
-        self.opening_info = scrolledtext.ScrolledText(opening_frame, height=6,
-                                                      font=("Consolas", 9), state=tk.DISABLED)
-        self.opening_info.pack(fill=tk.X, pady=2)
+        self.gen_btn.pack(fill=tk.X, pady=2)
+        self.opening_info = scrolledtext.ScrolledText(opening_frame, height=5,
+                                                      font=("Consolas", 8), state=tk.DISABLED)
+        self.opening_info.pack(fill=tk.X, pady=1)
 
         # 对方执黑录入开局（我方执白）
-        opp_opening_frame = ttk.LabelFrame(right_frame, text="对方执黑开局录入（我方执白）", padding="5")
-        opp_opening_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(opp_opening_frame, text="录入对方指定开局前三手",
-                  font=("Consolas", 8), foreground="gray").pack(anchor=tk.W)
-        self.opp_opening_entry = ttk.Entry(opp_opening_frame, font=("Consolas", 10))
-        self.opp_opening_entry.pack(fill=tk.X, pady=2)
+        opp_opening_frame = ttk.LabelFrame(self.right_scrollable_frame, text="对方执黑开局录入（我方执白）", padding="3")
+        opp_opening_frame.pack(fill=tk.X, pady=2, padx=2)
+        self.opp_opening_entry = ttk.Entry(opp_opening_frame, font=("Consolas", 9))
+        self.opp_opening_entry.pack(fill=tk.X, pady=1)
         self.opp_opening_entry.insert(0, "B(H,8);W(H,9);B(H,10)")
         opp_hint_frame = ttk.Frame(opp_opening_frame)
         opp_hint_frame.pack(fill=tk.X)
         ttk.Label(opp_hint_frame, text="开局:").pack(side=tk.LEFT)
         self.opp_opening_name_combo = ttk.Combobox(opp_hint_frame, values=ALL_OPENINGS,
-                                                    state="readonly", width=10)
+                                                    state="readonly", width=8)
         self.opp_opening_name_combo.set(DEFAULT_OPENING_NAME)
-        self.opp_opening_name_combo.pack(side=tk.LEFT, padx=5)
+        self.opp_opening_name_combo.pack(side=tk.LEFT, padx=3)
         ttk.Label(opp_hint_frame, text=" N:").pack(side=tk.LEFT)
         self.opp_n_combo = ttk.Combobox(opp_hint_frame, values=[2, 3, 4, 5],
                                           state="readonly", width=3)
         self.opp_n_combo.set(DEFAULT_FIFTH_N)
-        self.opp_n_combo.pack(side=tk.LEFT, padx=5)
+        self.opp_n_combo.pack(side=tk.LEFT, padx=3)
         self.validate_opp_opening_btn = ttk.Button(opp_opening_frame, text="校验并录入对方开局",
                                                      command=self.validate_opponent_opening)
-        self.validate_opp_opening_btn.pack(fill=tk.X, pady=2)
+        self.validate_opp_opening_btn.pack(fill=tk.X, pady=1)
 
         # 三手交换
-        swap_frame = ttk.LabelFrame(right_frame, text="三手交换", padding="5")
-        swap_frame.pack(fill=tk.X, pady=5)
+        swap_frame = ttk.LabelFrame(self.right_scrollable_frame, text="三手交换", padding="3")
+        swap_frame.pack(fill=tk.X, pady=2, padx=2)
         self.swap_label = ttk.Label(swap_frame, text="等待生成开局...",
-                                     font=("Consolas", 10))
+                                     font=("Consolas", 9))
         self.swap_label.pack(anchor=tk.W)
         swap_btn_frame = ttk.Frame(swap_frame)
-        swap_btn_frame.pack(fill=tk.X, pady=2)
-        self.swap_yes_btn = ttk.Button(swap_btn_frame, text="对方选择交换",
-                                        command=lambda: self.handle_swap(True), width=15)
-        self.swap_yes_btn.pack(side=tk.LEFT, padx=2)
-        self.swap_no_btn = ttk.Button(swap_btn_frame, text="对方选择不交换",
-                                       command=lambda: self.handle_swap(False), width=15)
-        self.swap_no_btn.pack(side=tk.LEFT, padx=2)
+        swap_btn_frame.pack(fill=tk.X, pady=1)
+        self.swap_yes_btn = ttk.Button(swap_btn_frame, text="对方交换",
+                                        command=lambda: self.handle_swap(True), width=10)
+        self.swap_yes_btn.pack(side=tk.LEFT, padx=1)
+        self.swap_no_btn = ttk.Button(swap_btn_frame, text="对方不交换",
+                                       command=lambda: self.handle_swap(False), width=10)
+        self.swap_no_btn.pack(side=tk.LEFT, padx=1)
         self.swap_yes_btn.config(state=tk.DISABLED)
         self.swap_no_btn.config(state=tk.DISABLED)
 
         # 五手N打
-        fifth_frame = ttk.LabelFrame(right_frame, text="五手N打", padding="5")
-        fifth_frame.pack(fill=tk.X, pady=5)
-        self.fifth_n_label = ttk.Label(fifth_frame, text="N值: 待开局后显示", font=("Consolas", 10))
+        fifth_frame = ttk.LabelFrame(self.right_scrollable_frame, text="五手N打", padding="3")
+        fifth_frame.pack(fill=tk.X, pady=2, padx=2)
+        self.fifth_n_label = ttk.Label(fifth_frame, text="N值: 待开局后显示", font=("Consolas", 9))
         self.fifth_n_label.pack(anchor=tk.W)
         self.fifth_candidates_label = ttk.Label(fifth_frame, text="候选点: 等待生成...",
-                                                 font=("Consolas", 9), wraplength=320)
+                                                 font=("Consolas", 8), wraplength=350)
         self.fifth_candidates_label.pack(anchor=tk.W)
         fifth_input_frame = ttk.Frame(fifth_frame)
-        fifth_input_frame.pack(fill=tk.X, pady=2)
+        fifth_input_frame.pack(fill=tk.X, pady=1)
         ttk.Label(fifth_input_frame, text="候选/保留:").pack(side=tk.LEFT)
-        self.fifth_entry = ttk.Entry(fifth_input_frame, width=20)
-        self.fifth_entry.pack(side=tk.LEFT, padx=5)
+        self.fifth_entry = ttk.Entry(fifth_input_frame, width=18)
+        self.fifth_entry.pack(side=tk.LEFT, padx=3)
         ttk.Button(fifth_input_frame, text="确认", command=self.confirm_fifth).pack(side=tk.LEFT)
 
         # 禁手检测
-        forbidden_frame = ttk.LabelFrame(right_frame, text="禁手检测", padding="5")
-        forbidden_frame.pack(fill=tk.X, pady=5)
+        forbidden_frame = ttk.LabelFrame(self.right_scrollable_frame, text="禁手检测", padding="3")
+        forbidden_frame.pack(fill=tk.X, pady=2, padx=2)
         ttk.Label(forbidden_frame, text="黑棋：三三、四四、长连禁手",
-                  font=("Consolas", 8)).pack(anchor=tk.W)
+                  font=("Consolas", 7)).pack(anchor=tk.W)
         self.forbidden_status_label = ttk.Label(forbidden_frame, text="当前禁手状态：无禁手",
-                                                font=("Consolas", 10, "bold"), foreground="green")
-        self.forbidden_status_label.pack(anchor=tk.W, pady=2)
+                                                font=("Consolas", 9, "bold"), foreground="green")
+        self.forbidden_status_label.pack(anchor=tk.W, pady=1)
         self.forbidden_toggle_btn = ttk.Button(forbidden_frame, text="显示黑棋禁手点",
                                                command=self.toggle_forbidden_points)
-        self.forbidden_toggle_btn.pack(fill=tk.X, pady=2)
-        ttk.Label(forbidden_frame, text="禁手仅适用于黑棋，白棋无禁手",
-                  font=("Consolas", 7), foreground="gray").pack(anchor=tk.W)
+        self.forbidden_toggle_btn.pack(fill=tk.X, pady=1)
 
         # 对方落子输入
-        input_frame = ttk.LabelFrame(right_frame, text="对方落子/五手候选输入", padding="5")
-        input_frame.pack(fill=tk.X, pady=5)
-        self.opp_input_entry = ttk.Entry(input_frame, font=("Consolas", 11))
+        input_frame = ttk.LabelFrame(self.right_scrollable_frame, text="对方落子/五手候选输入", padding="3")
+        input_frame.pack(fill=tk.X, pady=2, padx=2)
+        self.opp_input_entry = ttk.Entry(input_frame, font=("Consolas", 10))
         self.opp_input_entry.pack(fill=tk.X)
         self.opp_input_entry.insert(0, "如 W(J,8) 或 B(J,8);B(I,9)")
         ttk.Button(input_frame, text="确认输入",
-                   command=self.confirm_opponent_move).pack(fill=tk.X, pady=(5, 0))
+                   command=self.confirm_opponent_move).pack(fill=tk.X, pady=(3, 0))
 
         # 执棋颜色
-        color_frame = ttk.LabelFrame(right_frame, text="执棋颜色", padding="5")
-        color_frame.pack(fill=tk.X, pady=5)
+        color_frame = ttk.LabelFrame(self.right_scrollable_frame, text="执棋颜色", padding="3")
+        color_frame.pack(fill=tk.X, pady=2, padx=2)
         self.color_var = tk.StringVar(value="B")
         ttk.Radiobutton(color_frame, text="我方执黑 (B)",
                         variable=self.color_var, value="B",
@@ -254,22 +294,22 @@ class CompetitionGUI:
                         command=self.on_color_change).pack(anchor=tk.W)
 
         # 按钮区
-        btn_frame = ttk.Frame(right_frame)
-        btn_frame.pack(fill=tk.X, pady=5)
+        btn_frame = ttk.Frame(self.right_scrollable_frame)
+        btn_frame.pack(fill=tk.X, pady=2, padx=2)
         self.start_btn = ttk.Button(btn_frame, text="开始对局", command=self.start_game)
-        self.start_btn.pack(fill=tk.X, pady=2)
+        self.start_btn.pack(fill=tk.X, pady=1)
         self.save_btn = ttk.Button(btn_frame, text="保存日志和棋谱",
                                    command=self.save_game, state=tk.DISABLED)
-        self.save_btn.pack(fill=tk.X, pady=2)
+        self.save_btn.pack(fill=tk.X, pady=1)
         self.record_btn = ttk.Button(btn_frame, text="显示棋谱",
                                       command=self.show_record, state=tk.DISABLED)
-        self.record_btn.pack(fill=tk.X, pady=2)
-        ttk.Button(btn_frame, text="退出", command=self.quit_game).pack(fill=tk.X, pady=2)
+        self.record_btn.pack(fill=tk.X, pady=1)
+        ttk.Button(btn_frame, text="退出", command=self.quit_game).pack(fill=tk.X, pady=1)
 
         # 输出信息
-        output_frame = ttk.LabelFrame(right_frame, text="输出信息", padding="5")
-        output_frame.pack(fill=tk.BOTH, expand=True, pady=5)
-        self.output_text = scrolledtext.ScrolledText(output_frame, height=6,
+        output_frame = ttk.LabelFrame(self.right_scrollable_frame, text="输出信息", padding="3")
+        output_frame.pack(fill=tk.BOTH, expand=True, pady=2, padx=2)
+        self.output_text = scrolledtext.ScrolledText(output_frame, height=5,
                                                      font=("Consolas", 9), state=tk.DISABLED)
         self.output_text.pack(fill=tk.BOTH, expand=True)
 
