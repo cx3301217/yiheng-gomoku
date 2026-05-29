@@ -45,6 +45,7 @@ for r in range(5, 10):
 PHASE_WAIT_OPENING = "等待生成指定开局"
 PHASE_WAIT_SWAP = "等待对方三手交换选择"
 PHASE_WAIT_OPPONENT_4 = "等待对方白4落子"
+PHASE_FIFTH_N_SELECT = "五手N打：等待对方选择保留点"
 PHASE_FIFTH_N_INPUT = "五手N打：等待输入候选点"
 PHASE_FIFTH_N_CHOOSE = "五手N打：程序选择保留点"
 PHASE_MY_TURN = "我方程序思考中"
@@ -790,6 +791,17 @@ class CompetitionGUI:
             self.end_game()
             return
 
+        # 检查是否是黑5五手N打阶段
+        if self.runner.my_color == BLACK and self.runner.move_count == 4:
+            # 我方执黑，白4后轮到黑5五手N打
+            self.current_phase = PHASE_FIFTH_N_SELECT
+            self.update_phase()
+            self.current_turn = BLACK
+            self.update_turn()
+            self.generate_my_black_fifth_candidates()
+            self.output_append("请将候选点告知对方，并录入对方选择保留的点...")
+            return
+
         # 我方落子
         self.current_phase = PHASE_MY_TURN
         self.update_phase()
@@ -816,7 +828,15 @@ class CompetitionGUI:
             self.update_turn()
 
     def confirm_fifth(self):
-        """确认五手N打保留点（备用，可能不用）"""
+        """确认五手N打保留点（仅用于我方执黑时对方选择保留点）"""
+        if self.current_phase != PHASE_FIFTH_N_SELECT:
+            self.output_append("错误: 当前不是五手N打保留点选择阶段")
+            return
+
+        if not self.fifth_candidates:
+            self.output_append("错误: 当前没有程序生成的五手N打候选点")
+            return
+
         text = self.fifth_entry.get().strip().upper()
         if not text:
             self.output_append("请输入保留点坐标")
@@ -826,29 +846,55 @@ class CompetitionGUI:
         if "(" in text:
             coord = text.split("(")[1].split(")")[0]
 
-        if self.fifth_candidates and coord not in self.fifth_candidates:
-            self.output_append(f"保留点{coord}不在候选点中")
+        if coord not in self.fifth_candidates:
+            self.output_append(f"保留点{coord}不在候选点{self.fifth_candidates}中")
             return
 
+        # 落子
         row, col = coord_to_index(coord)
         self.runner.board.place_stone(row, col, BLACK)
         self.runner.record.add_move(BLACK, coord.upper())
         self.runner.move_count += 1
 
         self.fifth_selected = coord
-        self.output_append(f"黑5已落子: B({coord})")
-        self.fifth_candidates_label.config(text="候选点: 已选定")
+        self.output_append(f"黑5已按对方选择保留: B({coord})")
+        self.fifth_candidates_label.config(text=f"保留点: B({coord})")
         self.fifth_entry.delete(0, tk.END)
         self.fifth_candidates = []
 
+        self.draw_board()
+        self.update_forbidden_status()
+
+        # 进入等待对方白6
         self.current_phase = PHASE_WAIT_OPPONENT_4
         self.update_phase()
         self.output_append("请输入对方白6落子...")
-
-        self.draw_board()
-        self.update_forbidden_status()
-        self.current_turn = self.runner.opponent_color
+        self.current_turn = WHITE
         self.update_turn()
+
+    def generate_my_black_fifth_candidates(self):
+        """生成我方执黑时的五手N打候选点"""
+        candidates_data = get_scored_moves(self.runner.board, BLACK, limit=self.fifth_n * 3)
+        self.fifth_candidates = []
+
+        for coord, score in candidates_data:
+            if len(self.fifth_candidates) >= self.fifth_n:
+                break
+            row, col = coord_to_index(coord)
+            if self.runner.board.grid[row][col] != EMPTY:
+                continue
+            # 检查是否为禁手点
+            self.runner.board.grid[row][col] = BLACK
+            if is_forbidden_move(self.runner.board, row, col, BLACK):
+                self.runner.board.grid[row][col] = EMPTY
+                continue
+            self.runner.board.grid[row][col] = EMPTY
+            if coord not in self.fifth_candidates:
+                self.fifth_candidates.append(coord)
+
+        candidates_str = ";".join([f"B({c})" for c in self.fifth_candidates])
+        self.fifth_candidates_label.config(text=f"候选点: {candidates_str}")
+        self.output_append(f"黑5候选点: {candidates_str}")
 
     def toggle_forbidden_points(self):
         """切换显示黑棋禁手点"""
