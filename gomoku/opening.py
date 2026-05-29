@@ -182,23 +182,47 @@ def validate_basic_specified_opening(first_three_text: str) -> Tuple[bool, str]:
 
 
 def _parse_coords(text: str) -> List[str]:
-    """解析坐标文本，返回坐标列表"""
-    # 清理文本
-    text = text.upper().replace(" ", "").replace("B(", "").replace("W(", "").replace(")", "")
+    """解析坐标文本，返回坐标列表
 
-    # 按分号或逗号分割
+    支持格式：
+    - B(H,8);W(H,9);B(H,10)
+    - B(H8);W(H9);B(H10)
+    - H8;H9;H10
+    - H8,H9,H10
+    - H,8 H,9 H,10
+    """
+    text = text.strip()
+    if not text:
+        return []
+
+    coords = []
+
+    # 按分号或换行分割
     if ";" in text:
         parts = text.split(";")
     else:
-        parts = text.split(",")
+        parts = text.replace("\n", ",").split(",")
 
-    coords = []
     for part in parts:
         part = part.strip()
-        if part:
-            # 移除颜色前缀
-            if part.startswith("B") or part.startswith("W"):
-                part = part[1:]
+        if not part:
+            continue
+
+        part = part.upper()
+
+        # 移除颜色前缀
+        if part.startswith("B(") or part.startswith("W("):
+            part = part[2:]  # 移除 "B(" 或 "W("
+
+        # 移除可能的括号
+        part = part.replace("(", "").replace(")", "")
+
+        # 处理 H,8 格式（带逗号）
+        if "," in part:
+            # 格式：H,8 -> H8
+            coords.append(part.replace(",", ""))
+        else:
+            # 格式：H8 或 H10
             coords.append(part)
 
     return coords

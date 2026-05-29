@@ -83,6 +83,17 @@ def is_double_four(board: Board, row: int, col: int, color: int) -> bool:
 
 
 def is_forbidden_move(board: Board, row: int, col: int, color: int) -> bool:
+    """检查黑棋是否禁手
+
+    Args:
+        board: 棋盘对象
+        row: 行坐标
+        col: 列坐标
+        color: 棋子颜色
+
+    Returns:
+        如果是黑棋禁手返回True，否则返回False
+    """
     if color != BLACK:
         return False
     if board.grid[row][col] != BLACK:
@@ -96,3 +107,31 @@ def is_forbidden_move(board: Board, row: int, col: int, color: int) -> bool:
     if is_double_four(board, row, col, BLACK):
         return True
     return False
+
+
+def get_forbidden_type(board: Board, row: int, col: int, color: int) -> Tuple[bool, str]:
+    """获取禁手类型
+
+    Args:
+        board: 棋盘对象
+        row: 行坐标
+        col: 列坐标
+        color: 棋子颜色
+
+    Returns:
+        (是否禁手, 禁手类型)
+        禁手类型: "OVERLINE" / "DOUBLE_THREE" / "DOUBLE_FOUR" / ""
+    """
+    if color != BLACK:
+        return (False, "")
+    if board.grid[row][col] != BLACK:
+        return (False, "")
+    if board.has_exact_five(row, col, BLACK):
+        return (False, "")
+    if is_overline(board, row, col, BLACK):
+        return (True, "OVERLINE")
+    if is_double_three(board, row, col, BLACK):
+        return (True, "DOUBLE_THREE")
+    if is_double_four(board, row, col, BLACK):
+        return (True, "DOUBLE_FOUR")
+    return (False, "")

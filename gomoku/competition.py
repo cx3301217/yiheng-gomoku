@@ -74,6 +74,24 @@ class CompetitionRunner:
 
         self._log(f"比赛开始，我方执{'黑' if my_color == BLACK else '白'}")
 
+    def set_colors(self, my_color: int) -> None:
+        """设置我方颜色并更新对方颜色
+
+        Args:
+            my_color: 新我方颜色 (BLACK 或 WHITE)
+        """
+        if my_color not in (BLACK, WHITE):
+            raise ValueError(f"my_color 必须是 BLACK({BLACK}) 或 WHITE({WHITE})")
+
+        self.my_color = my_color
+        self.opponent_color = WHITE if my_color == BLACK else BLACK
+        self._log(f"执棋颜色更新，我方现执{'黑' if my_color == BLACK else '白'}")
+
+    def swap_colors(self) -> None:
+        """交换双方执棋颜色"""
+        self.my_color, self.opponent_color = self.opponent_color, self.my_color
+        self._log(f"三手交换完成，我方现执{'黑' if self.my_color == BLACK else '白'}")
+
     def _set_result_and_log(self, winner: str) -> None:
         """设置比赛结果并记录日志
 
@@ -411,9 +429,9 @@ class CompetitionRunner:
                 if stone == EMPTY:
                     cells.append(" . ")
                 elif stone == BLACK:
-                    cells.append(" X ")  # 黑棋
+                    cells.append(" X ")
                 else:
-                    cells.append(" O ")  # 白棋
+                    cells.append(" O ")
             print(row_num_str + "".join(cells) + f" {row + 1:2d}")
         print("    " + "  ".join(COL_LETTERS))
         print()
