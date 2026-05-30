@@ -244,7 +244,7 @@ class CompetitionGUI:
         forbidden_frame.pack(fill=tk.X, pady=1)
         ttk.Label(forbidden_frame, text="黑：三三、四四、长连",
                   font=("Consolas", 7)).pack(anchor=tk.W)
-        self.forbidden_status_label = ttk.Label(forbidden_frame, text="当前禁手状态：无禁手",
+        self.forbidden_status_label = ttk.Label(forbidden_frame, text="无禁手",
                                                 font=("Consolas", 8, "bold"), foreground="green")
         self.forbidden_status_label.pack(anchor=tk.W, pady=1)
         self.forbidden_toggle_btn = ttk.Button(forbidden_frame, text="显示黑棋禁手点",
@@ -275,12 +275,12 @@ class CompetitionGUI:
         self.record_btn.pack(fill=tk.X, pady=1)
         ttk.Button(btn_frame, text="退出", command=self.quit_game).pack(fill=tk.X, pady=1)
 
-        # 输出信息
+        # 输出信息（固定高度，不撑满）
         output_frame = ttk.LabelFrame(right_frame, text="输出信息", padding="2")
-        output_frame.pack(fill=tk.BOTH, expand=True, pady=1)
-        self.output_text = scrolledtext.ScrolledText(output_frame, height=12,
+        output_frame.pack(fill=tk.BOTH, pady=1)
+        self.output_text = scrolledtext.ScrolledText(output_frame, height=10,
                                                      font=("Consolas", 8), state=tk.DISABLED)
-        self.output_text.pack(fill=tk.BOTH, expand=True)
+        self.output_text.pack(fill=tk.BOTH)
 
         self.draw_board()
 
