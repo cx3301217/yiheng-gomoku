@@ -101,14 +101,13 @@ class CompetitionGUI:
         self.update_phase()
 
     def setup_ui(self):
-        """三栏布局：左-棋盘，中-流程，右-辅助，整体居中"""
+        """三栏布局：左-棋盘，中-流程，右-辅助"""
         # 外层居中框架
         outer_frame = ttk.Frame(self.root)
         outer_frame.pack(fill=tk.BOTH, expand=True)
 
-        main_frame = ttk.Frame(outer_frame, padding="3", width=1330)
-        main_frame.pack(anchor="center")
-        main_frame.pack_propagate(False)
+        main_frame = ttk.Frame(outer_frame, padding="3")
+        main_frame.pack(expand=True)
 
         # ========== 左栏：棋盘区 ==========
         left_frame = ttk.Frame(main_frame)
