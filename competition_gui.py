@@ -244,6 +244,22 @@ class CompetitionGUI:
                         variable=self.color_var, value="W",
                         command=self.on_color_change).pack(anchor=tk.W)
 
+        # 队名输入
+        team_frame = ttk.LabelFrame(right_frame, text="队名", padding="2")
+        team_frame.pack(fill=tk.X, pady=1)
+        my_team_row = ttk.Frame(team_frame)
+        my_team_row.pack(fill=tk.X, pady=1)
+        ttk.Label(my_team_row, text="我方队名:", font=("Consolas", 7)).pack(side=tk.LEFT)
+        self.my_team_entry = ttk.Entry(my_team_row, font=("Consolas", 8), width=14)
+        self.my_team_entry.pack(side=tk.LEFT, padx=2)
+        self.my_team_entry.insert(0, "弈衡五子棋")
+        opp_team_row = ttk.Frame(team_frame)
+        opp_team_row.pack(fill=tk.X, pady=1)
+        ttk.Label(opp_team_row, text="对方队名:", font=("Consolas", 7)).pack(side=tk.LEFT)
+        self.opp_team_entry = ttk.Entry(opp_team_row, font=("Consolas", 8), width=14)
+        self.opp_team_entry.pack(side=tk.LEFT, padx=2)
+        self.opp_team_entry.insert(0, "对方队伍")
+
         # 对方执黑开局录入（我方执白）- 移到右栏，紧凑显示
         opp_opening_frame = ttk.LabelFrame(right_frame, text="对方执黑开局录入", padding="2")
         opp_opening_frame.pack(fill=tk.X, pady=1)
@@ -1036,8 +1052,21 @@ class CompetitionGUI:
         if not self.runner:
             self.output_append("没有可保存的对局")
             return
+        my_team = self.my_team_entry.get().strip() or "我方"
+        opp_team = self.opp_team_entry.get().strip() or "对方"
+        # 根据当前我方颜色设置先后手队名
+        if self.runner.my_color == BLACK:
+            black_team = my_team
+            white_team = opp_team
+        else:
+            black_team = opp_team
+            white_team = my_team
+        # 设置棋谱头部信息
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        self.runner.record.set_match_info(black_team, white_team, date_str, "2026省赛五子棋项目")
+        # 保存
         log_path = self.runner.save_log()
-        record_path = self.runner.save_record()
+        record_path = self.runner.save_record(black_team=black_team, white_team=white_team)
         self.output_append(f"日志已保存: {os.path.basename(log_path)}")
         self.output_append(f"棋谱已保存: {os.path.basename(record_path)}")
 

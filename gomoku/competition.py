@@ -390,11 +390,14 @@ class CompetitionRunner:
         self._log(f"日志已保存: {filepath}")
         return filepath
 
-    def save_record(self, output_dir: str = "records/competition") -> str:
-        """保存比赛棋谱
+    def save_record(self, output_dir: str = "records/competition",
+                    black_team: str = "", white_team: str = "") -> str:
+        """保存比赛棋谱（C5标准格式，GBK编码）
 
         Args:
             output_dir: 输出目录
+            black_team: 先手队名（用于文件名）
+            white_team: 后手队名（用于文件名）
 
         Returns:
             保存的文件路径
@@ -402,17 +405,23 @@ class CompetitionRunner:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"competition_{timestamp}.txt"
-        filepath = os.path.join(output_dir, filename)
+        # 清理队名中的非法字符
+        illegal_chars = '\\/:*?"<>|'
+        bt = ''.join(c if c not in illegal_chars else '_' for c in (black_team or "先手队").strip())
+        wt = ''.join(c if c not in illegal_chars else '_' for c in (white_team or "后手队").strip())
+        result_part = self.record.result
 
-        try:
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(self.record.to_text())
-        except Exception:
-            with open(filepath, "w", encoding="gbk") as f:
-                f.write(self.record.to_text())
+        # 尝试标准文件名
+        filename_base = f"C5-{bt} vs {wt}-{result_part}"
+        filepath = os.path.join(output_dir, filename_base + ".txt")
 
+        # 如果文件已存在，加时间戳
+        if os.path.exists(filepath):
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename_base = f"C5-{bt} vs {wt}-{result_part}-{timestamp}"
+            filepath = os.path.join(output_dir, filename_base + ".txt")
+
+        self.record.save(filepath)
         self._log(f"棋谱已保存: {filepath}")
         return filepath
 
