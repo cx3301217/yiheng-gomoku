@@ -101,13 +101,18 @@ class CompetitionGUI:
         self.update_phase()
 
     def setup_ui(self):
-        """三栏布局：左-棋盘，中-流程，右-辅助"""
-        main_frame = ttk.Frame(self.root, padding="2")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        """三栏布局：左-棋盘，中-流程，右-辅助，整体居中"""
+        # 外层居中框架
+        outer_frame = ttk.Frame(self.root)
+        outer_frame.pack(fill=tk.BOTH, expand=True)
+
+        main_frame = ttk.Frame(outer_frame, padding="3", width=1330)
+        main_frame.pack(anchor="center")
+        main_frame.pack_propagate(False)
 
         # ========== 左栏：棋盘区 ==========
         left_frame = ttk.Frame(main_frame)
-        left_frame.pack(side=tk.LEFT, padx=2)
+        left_frame.pack(side=tk.LEFT, padx=5)
 
         self.canvas = tk.Canvas(left_frame, width=self.canvas_width,
                                 height=self.canvas_height, bg="#DEB887")
@@ -116,7 +121,7 @@ class CompetitionGUI:
 
         # ========== 中栏：比赛流程区 ==========
         middle_frame = ttk.Frame(main_frame, width=380)
-        middle_frame.pack(side=tk.LEFT, fill=tk.BOTH, padx=2)
+        middle_frame.pack(side=tk.LEFT, fill=tk.BOTH, padx=5)
         middle_frame.pack_propagate(False)
 
         # 标题
@@ -236,7 +241,7 @@ class CompetitionGUI:
 
         # ========== 右栏：辅助信息区 ==========
         right_frame = ttk.Frame(main_frame, width=320)
-        right_frame.pack(side=tk.LEFT, fill=tk.BOTH, padx=2)
+        right_frame.pack(side=tk.LEFT, fill=tk.BOTH, padx=5)
         right_frame.pack_propagate(False)
 
         # 禁手检测
