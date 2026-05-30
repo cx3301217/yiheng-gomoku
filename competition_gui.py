@@ -154,7 +154,7 @@ class CompetitionGUI:
         self.reset_btn = ttk.Button(timer_btn_frame, text="重置", command=self.reset_timers, width=6)
         self.reset_btn.pack(side=tk.LEFT, padx=1)
 
-        # 指定开局（我方执黑）
+        # 指定开局（我方执黑）- 紧凑显示
         opening_frame = ttk.LabelFrame(middle_frame, text="指定开局（我方执黑）", padding="2")
         opening_frame.pack(fill=tk.X, pady=1)
         name_frame = ttk.Frame(opening_frame)
@@ -171,31 +171,9 @@ class CompetitionGUI:
         self.gen_btn = ttk.Button(opening_frame, text="程序生成指定开局",
                                    command=self.generate_opening)
         self.gen_btn.pack(fill=tk.X, pady=1)
-        self.opening_info = scrolledtext.ScrolledText(opening_frame, height=4,
-                                                      font=("Consolas", 7), state=tk.DISABLED)
-        self.opening_info.pack(fill=tk.X, pady=1)
-
-        # 对方执黑开局录入（我方执白）
-        opp_opening_frame = ttk.LabelFrame(middle_frame, text="对方执黑开局录入（我方执白）", padding="2")
-        opp_opening_frame.pack(fill=tk.X, pady=1)
-        self.opp_opening_entry = ttk.Entry(opp_opening_frame, font=("Consolas", 8))
-        self.opp_opening_entry.pack(fill=tk.X, pady=1)
-        self.opp_opening_entry.insert(0, "B(H,8);W(H,9);B(H,10)")
-        opp_hint_frame = ttk.Frame(opp_opening_frame)
-        opp_hint_frame.pack(fill=tk.X, pady=1)
-        ttk.Label(opp_hint_frame, text="开局:").pack(side=tk.LEFT)
-        self.opp_opening_name_combo = ttk.Combobox(opp_hint_frame, values=ALL_OPENINGS,
-                                                    state="readonly", width=8)
-        self.opp_opening_name_combo.set(DEFAULT_OPENING_NAME)
-        self.opp_opening_name_combo.pack(side=tk.LEFT, padx=2)
-        ttk.Label(opp_hint_frame, text="N:").pack(side=tk.LEFT)
-        self.opp_n_combo = ttk.Combobox(opp_hint_frame, values=[2, 3, 4, 5],
-                                          state="readonly", width=3)
-        self.opp_n_combo.set(DEFAULT_FIFTH_N)
-        self.opp_n_combo.pack(side=tk.LEFT, padx=2)
-        self.validate_opp_opening_btn = ttk.Button(opp_opening_frame, text="校验并录入对方开局",
-                                                     command=self.validate_opponent_opening)
-        self.validate_opp_opening_btn.pack(fill=tk.X, pady=1)
+        self.opening_info_label = ttk.Label(opening_frame, text="等待生成...",
+                                            font=("Consolas", 7), foreground="gray")
+        self.opening_info_label.pack(fill=tk.X, pady=1)
 
         # 三手交换
         swap_frame = ttk.LabelFrame(middle_frame, text="三手交换", padding="2")
@@ -239,7 +217,7 @@ class CompetitionGUI:
         ttk.Button(fifth_input_frame, text="确认", command=self.confirm_fifth).pack(side=tk.LEFT)
 
         # ========== 右栏：辅助信息区 ==========
-        right_frame = ttk.Frame(main_frame, width=320)
+        right_frame = ttk.Frame(main_frame, width=330)
         right_frame.pack(side=tk.LEFT, fill=tk.BOTH, padx=5)
         right_frame.pack_propagate(False)
 
@@ -266,6 +244,28 @@ class CompetitionGUI:
                         variable=self.color_var, value="W",
                         command=self.on_color_change).pack(anchor=tk.W)
 
+        # 对方执黑开局录入（我方执白）- 移到右栏，紧凑显示
+        opp_opening_frame = ttk.LabelFrame(right_frame, text="对方执黑开局录入", padding="2")
+        opp_opening_frame.pack(fill=tk.X, pady=1)
+        self.opp_opening_entry = ttk.Entry(opp_opening_frame, font=("Consolas", 8))
+        self.opp_opening_entry.pack(fill=tk.X, pady=1)
+        self.opp_opening_entry.insert(0, "B(H,8);W(H,9);B(H,10)")
+        opp_hint_frame = ttk.Frame(opp_opening_frame)
+        opp_hint_frame.pack(fill=tk.X, pady=1)
+        ttk.Label(opp_hint_frame, text="开局:").pack(side=tk.LEFT)
+        self.opp_opening_name_combo = ttk.Combobox(opp_hint_frame, values=ALL_OPENINGS,
+                                                    state="readonly", width=8)
+        self.opp_opening_name_combo.set(DEFAULT_OPENING_NAME)
+        self.opp_opening_name_combo.pack(side=tk.LEFT, padx=2)
+        ttk.Label(opp_hint_frame, text="N:").pack(side=tk.LEFT)
+        self.opp_n_combo = ttk.Combobox(opp_hint_frame, values=[2, 3, 4, 5],
+                                          state="readonly", width=3)
+        self.opp_n_combo.set(DEFAULT_FIFTH_N)
+        self.opp_n_combo.pack(side=tk.LEFT, padx=2)
+        self.validate_opp_opening_btn = ttk.Button(opp_opening_frame, text="校验并录入对方开局",
+                                                     command=self.validate_opponent_opening)
+        self.validate_opp_opening_btn.pack(fill=tk.X, pady=1)
+
         # 操作按钮区
         btn_frame = ttk.LabelFrame(right_frame, text="操作", padding="2")
         btn_frame.pack(fill=tk.X, pady=1)
@@ -279,10 +279,10 @@ class CompetitionGUI:
         self.record_btn.pack(fill=tk.X, pady=1)
         ttk.Button(btn_frame, text="退出", command=self.quit_game).pack(fill=tk.X, pady=1)
 
-        # 输出信息（固定高度，不撑满）
+        # 输出信息（固定高度）
         output_frame = ttk.LabelFrame(right_frame, text="输出信息", padding="2")
         output_frame.pack(fill=tk.BOTH, pady=1)
-        self.output_text = scrolledtext.ScrolledText(output_frame, height=10,
+        self.output_text = scrolledtext.ScrolledText(output_frame, height=8,
                                                      font=("Consolas", 8), state=tk.DISABLED)
         self.output_text.pack(fill=tk.BOTH)
 
@@ -369,17 +369,9 @@ class CompetitionGUI:
         b1, w2, b3 = opening_info["black1"], opening_info["white2"], opening_info["black3"]
         opening_type = opening_info["type"]
 
-        self.opening_info.config(state=tk.NORMAL)
-        self.opening_info.delete(1.0, tk.END)
-        self.opening_info.insert(tk.END, f"开局名称: {self.opening_name}\n")
-        self.opening_info.insert(tk.END, f"类型: {opening_type}\n")
-        self.opening_info.insert(tk.END, f"N值: {self.fifth_n}\n")
-        self.opening_info.insert(tk.END, f"前三手:\n")
-        self.opening_info.insert(tk.END, f"1. B({b1})\n")
-        self.opening_info.insert(tk.END, f"2. W({w2})\n")
-        self.opening_info.insert(tk.END, f"3. B({b3})\n")
-        self.opening_info.insert(tk.END, f"\n下一步: 等待对方选择是否三手交换")
-        self.opening_info.config(state=tk.DISABLED)
+        self.opening_info_label.config(
+            text=f"{self.opening_name} N={self.fifth_n} B({b1});W({w2});B({b3})"
+        )
 
         self.my_color = BLACK
         self.runner = CompetitionRunner(self.my_color)
